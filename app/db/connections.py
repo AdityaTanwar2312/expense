@@ -1,8 +1,3 @@
-"""
-db/connection.py — SQLAlchemy engine + session factory.
-All DB operations import `get_engine` or `get_session` from here.
-"""
-
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
