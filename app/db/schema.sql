@@ -1,8 +1,3 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Expense Processor — Initial Schema
--- Auto-executed by Postgres on first container boot via initdb.d/
--- ─────────────────────────────────────────────────────────────────────────────
-
 CREATE TABLE IF NOT EXISTS expenses (
     id              SERIAL          PRIMARY KEY,
     date            DATE            NOT NULL,

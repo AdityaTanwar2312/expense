@@ -1,11 +1,3 @@
-"""
-analytics/summary.py — Format and log analytics after ingestion.
-
-`run_and_log_analytics()` is the single entry point called by the CLI
-after a successful ingest.  It runs all query functions, pretty-prints
-a report to stdout, and writes every metric to the log file.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -40,10 +32,6 @@ def _section(title: str) -> str:
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def run_and_log_analytics() -> None:
-    """
-    Pull all analytics from the DB, log every metric, and print a
-    formatted report to stdout.
-    """
     logger.info("Analytics | starting full analytics run")
 
     # ── 1. High-level summary ─────────────────────────────────────────────────

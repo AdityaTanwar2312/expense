@@ -1,0 +1,54 @@
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: expense_postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./app/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql  # auto-runs on first boot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Python App ───────────────────────────────────────────────────────────────
+  app:
+    build: .
+    container_name: expense_app
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres     # override localhost → service name
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data          # mount CSV data folder
+      - ./logs:/app/logs          # persist logs outside container
+
+  test:
+    build: .
+    container_name: expense_test
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    entrypoint: ["python", "-m", "pytest"]
+    command: ["--tb=short", "-v"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:

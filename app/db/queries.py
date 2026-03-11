@@ -1,15 +1,3 @@
-"""
-db/queries.py — All database operations.
-
-Functions:
-  insert_expenses()          — bulk insert validated records
-  total_and_avg_by_category() — SUM + AVG aggregation per category
-  monthly_spend_ranked()     — GROUP BY month ORDER BY total spend
-  top_spenders()             — GROUP BY submitter ORDER BY total spend
-  analytics_summary()        — full analytical snapshot (date range,
-                               totals, top category, top spender)
-"""
-
 from __future__ import annotations
 
 from datetime import date
