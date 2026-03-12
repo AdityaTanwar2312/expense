@@ -1,0 +1,11 @@
+date,category,description,amount,currency,submitted_by
+2024-01-05,Food,Team lunch at Chipotle,87.50,USD,alice@company.com
+2024-01-08,Travel,Uber to client office,23.40,USD,bob@company.com
+2024-01-10,Software,GitHub Copilot subscription,19.00,USD,alice@company.com
+2024-01-15,Office,Printer cartridges,45.99,USD,carol@company.com
+2024-01-18,Food,Coffee and snacks for standup,32.10,USD,bob@company.com
+2024-01-22,Marketing,LinkedIn ad campaign,250.00,USD,dave@company.com
+2024-01-25,Travel,Flight to NYC conference,420.00,USD,alice@company.com
+2024-01-28,Utilities,AWS bill,310.75,USD,carol@company.com
+2024-01-30,Food,Client dinner,195.00,USD,dave@company.com
+2024-01-31,Office,Standing desk mat,68.00,USD,bob@company.com
