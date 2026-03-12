@@ -208,7 +208,7 @@ pip install -r requirements.txt
 python -m app.cli init-db
 
 # 6. Run ingestion
-python -m app.cli ingest --files data/expenses_jan.csv data/expenses_feb.csv
+python -m app.cli ingest data/expenses_jan.csv data/expenses_feb.csv
 
 # 7. Run analytics only (on existing data)
 python -m app.cli analytics
