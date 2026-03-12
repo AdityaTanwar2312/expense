@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     amount          NUMERIC(12, 2)  NOT NULL CHECK (amount > 0),
     currency        VARCHAR(10)     NOT NULL DEFAULT 'USD',
     submitted_by    VARCHAR(100)    NOT NULL,
-    source_file     VARCHAR(255),                       -- which CSV this row came from
+    source_file     VARCHAR(255),                       
     ingested_at     TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
