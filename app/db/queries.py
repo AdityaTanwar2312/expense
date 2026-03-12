@@ -13,20 +13,12 @@ from app.ingestion.validator import ExpenseRecord
 logger = get_logger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # INSERT
-# ─────────────────────────────────────────────────────────────────────────────
 
 def insert_expenses(
     records: list[ExpenseRecord],
     source_file: str = "unknown",
 ) -> int:
-    """
-    Bulk-insert a list of validated ExpenseRecord objects.
-
-    Returns the number of rows successfully inserted.
-    Rolls back the entire batch on any DB error to keep the table consistent.
-    """
     if not records:
         logger.warning("DB Save | source=%s | no records to insert", source_file)
         return 0
@@ -70,22 +62,9 @@ def insert_expenses(
         session.close()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # AGGREGATION — SUM + AVG per category
-# ─────────────────────────────────────────────────────────────────────────────
 
 def total_and_avg_by_category() -> list[dict[str, Any]]:
-    """
-    SELECT category,
-           COUNT(*)        AS expense_count,
-           SUM(amount)     AS total_spend,
-           AVG(amount)     AS avg_spend,
-           MIN(amount)     AS min_spend,
-           MAX(amount)     AS max_spend
-    FROM expenses
-    GROUP BY category
-    ORDER BY total_spend DESC
-    """
     sql = text("""
         SELECT
             category,
@@ -109,17 +88,9 @@ def total_and_avg_by_category() -> list[dict[str, Any]]:
         session.close()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # GROUP BY month + ORDER BY spend
-# ─────────────────────────────────────────────────────────────────────────────
 
 def monthly_spend_ranked() -> list[dict[str, Any]]:
-    """
-    SELECT year, month, SUM(amount) AS monthly_total
-    FROM expenses
-    GROUP BY year, month
-    ORDER BY monthly_total DESC
-    """
     sql = text("""
         SELECT
             TO_CHAR(date, 'YYYY-MM')        AS month,
@@ -141,17 +112,9 @@ def monthly_spend_ranked() -> list[dict[str, Any]]:
         session.close()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TOP SPENDERS
-# ─────────────────────────────────────────────────────────────────────────────
 
 def top_spenders() -> list[dict[str, Any]]:
-    """
-    SELECT submitted_by, SUM(amount), COUNT(*) expense_count
-    FROM expenses
-    GROUP BY submitted_by
-    ORDER BY total_spend DESC
-    """
     sql = text("""
         SELECT
             submitted_by,
@@ -177,66 +140,46 @@ def top_spenders() -> list[dict[str, Any]]:
 # FULL ANALYTICAL SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
 
+ 
 def analytics_summary() -> dict[str, Any]:
-    """
-    Single-query analytical snapshot:
-      - total expenses + grand total spend
-      - date range (earliest → latest)
-      - top category by spend
-      - top spender by total amount
-      - currency breakdown
-    """
-    sql = text("""
-        WITH base AS (
-            SELECT
-                COUNT(*)                            AS total_records,
-                ROUND(SUM(amount)::NUMERIC, 2)      AS grand_total,
-                ROUND(AVG(amount)::NUMERIC, 2)      AS overall_avg,
-                MIN(date)                           AS earliest_date,
-                MAX(date)                           AS latest_date
-            FROM expenses
-        ),
-        top_cat AS (
-            SELECT category, ROUND(SUM(amount)::NUMERIC, 2) AS cat_total
-            FROM expenses
-            GROUP BY category
-            ORDER BY cat_total DESC
-            LIMIT 1
-        ),
-        top_person AS (
-            SELECT submitted_by, ROUND(SUM(amount)::NUMERIC, 2) AS person_total
-            FROM expenses
-            GROUP BY submitted_by
-            ORDER BY person_total DESC
-            LIMIT 1
-        )
+    breakdown_sql = text("""
         SELECT
-            base.total_records,
-            base.grand_total,
-            base.overall_avg,
-            base.earliest_date,
-            base.latest_date,
-            top_cat.category        AS top_category,
-            top_cat.cat_total       AS top_category_spend,
-            top_person.submitted_by AS top_spender,
-            top_person.person_total AS top_spender_total
-        FROM base, top_cat, top_person
+            TO_CHAR(date, 'YYYY-MM')        AS month,
+            category,
+            COUNT(*)                        AS expense_count,
+            ROUND(SUM(amount)::NUMERIC, 2)  AS total_spend
+        FROM expenses
+        GROUP BY TO_CHAR(date, 'YYYY-MM'), category
+        ORDER BY month, total_spend DESC
     """)
-
+ 
+    avg_sql = text("""
+        SELECT ROUND(AVG(monthly_total)::NUMERIC, 2) AS avg_monthly_spend
+        FROM (
+            SELECT SUM(amount) AS monthly_total
+            FROM expenses
+            GROUP BY TO_CHAR(date, 'YYYY-MM')
+        ) monthly
+    """)
+ 
     session = get_session()
     try:
-        result = session.execute(sql)
-        row = result.fetchone()
-        summary = dict(row._mapping) if row else {}
+        breakdown = [
+            dict(row._mapping)
+            for row in session.execute(breakdown_sql)
+        ]
+        avg_row  = session.execute(avg_sql).fetchone()
+        avg_monthly = float(avg_row[0]) if avg_row and avg_row[0] else 0.0
+ 
+        summary = {
+            "breakdown":        breakdown,
+            "avg_monthly_spend": avg_monthly,
+        }
+ 
         logger.info(
-            "Analytics | summary | total_records=%s | grand_total=%s | "
-            "date_range=%s → %s | top_category=%s | top_spender=%s",
-            summary.get("total_records"),
-            summary.get("grand_total"),
-            summary.get("earliest_date"),
-            summary.get("latest_date"),
-            summary.get("top_category"),
-            summary.get("top_spender"),
+            "Analytics | summary | months=%d | avg_monthly_spend=%s",
+            len({r["month"] for r in breakdown}),
+            avg_monthly,
         )
         return summary
     finally:
